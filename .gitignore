@@ -3,6 +3,7 @@ frontend/build/
 frontend/coverage/
 
 backend/weatherbot/geodat
+backend/pre-trained
 
 data
 

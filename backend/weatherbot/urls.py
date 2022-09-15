@@ -15,11 +15,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from apps.weather.router import urlpatterns as weather_urlpatterns
 from apps.chatbot.router import urlpatterns as chatbot_urlpatterns
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    *weather_urlpatterns,
     *chatbot_urlpatterns
 ]
