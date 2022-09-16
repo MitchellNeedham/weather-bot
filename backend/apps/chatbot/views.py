@@ -3,11 +3,20 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from apps.chatbot.utils import get_weather_response_messages, get_client_ip
+from apps.chatbot.utils import get_weather_response_messages, get_client_ip, get_location_coordinates, \
+    city_weather_messages
 from weatherbot import settings
 
 from apps.chatbot.models import Conversation, Message
 from apps.chatbot.enum import RequestedAction
+
+import locationtagger
+
+import nltk
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('maxent_ne_chunker')
+nltk.download('words')
 
 
 class ConversationStartAPIView(APIView):
@@ -20,9 +29,8 @@ class ConversationStartAPIView(APIView):
                 {
                     "conversation_id": new_conversation.id,
                     "messages": [
-                        "Hi there!",
-                        "I'm a weather bot, please ask me about the weather.",
-                        "It's my only purpose."
+                        "Hi there! I'm a weather bot",
+                        "Ask me about weather and I'll do my best to answer!"
                     ]
                 }
             )
@@ -40,8 +48,17 @@ class MessageHandlerAPIView(APIView):
 
             asked_about_weather = settings.CLASSIFIER(message, ["weather"])["scores"][0] > 0.8
 
+            locations = locationtagger.find_locations(text=message)
+
+            city = locations.cities[0] if len(locations.cities) > 0 else None
+            country = locations.countries[0] if len(locations.countries) > 0 else None
+
+            latitude, longitude = get_location_coordinates(city, country)
+
             if asked_about_weather:
-                if not conversation.latitude or not conversation.longitude:
+                if city:
+                    response = city_weather_messages(city, country, latitude, longitude)
+                elif not conversation.latitude or not conversation.longitude:
                     action = RequestedAction.GEO_LOC
                     response = ["I'd love to tell you! But first, I need to know where you are."]
                 else:
@@ -71,8 +88,6 @@ class GeolocationAPIView(APIView):
             conversation.save()
 
             messages = get_weather_response_messages(conversation, request.data.get("failed", False))
-
-            print(messages)
 
             return Response(
                 {"messages": messages}

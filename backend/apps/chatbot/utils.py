@@ -5,6 +5,7 @@ import requests
 
 from apps.chatbot.models import Conversation
 from weatherbot import settings
+from pycountry import countries
 
 
 def get_client_ip(request):
@@ -35,6 +36,10 @@ def get_weather_data(conversation: Conversation):
         return conversation.weather_response
 
 
+def get_historical_weather_data(latitude, longitude, date):
+    pass
+
+
 def get_weather_response_messages(conversation: Conversation, guess=False):
     weather_data = conversation.weather_response
     if (conversation.weather_request_time is None
@@ -53,7 +58,7 @@ def get_weather_response_messages(conversation: Conversation, guess=False):
     )
 
     messages.append(
-        f"You can expect a max of {weather_data['main']['temp_max']}°C and a low of " +
+        f"You can expect a high of {weather_data['main']['temp_max']}°C and a low of " +
         f"{weather_data['main']['temp_min']}°C."
     )
 
@@ -68,3 +73,38 @@ def get_weather_response_messages(conversation: Conversation, guess=False):
         messages.append(f"I hope you've had a nice day :)")
 
     return messages
+
+
+def city_weather_messages(city, country, latitude, longitude):
+    if longitude is None or latitude is None:
+        return [f"I couldn't find any data for {city}{f', {country}.' if country else '.'}"]
+    owm_req_url = (
+            f"http://api.openweathermap.org/data/2.5/weather?" +
+            f"lat={latitude}&lon={longitude}" +
+            f"&mode=json&units=metric&APPID={settings.OWM_API_KEY}"
+    )
+    try:
+        owm_resp = requests.get(owm_req_url).json()
+        print(owm_resp)
+        if owm_resp["cod"] != 200:
+            return ["I couldn't get that information at the moment, sorry."]
+        return [f"It is currently {owm_resp['main']['temp']:n}°C in {city}{f', {country}.' if country else '.'}"]
+    except requests.exceptions.RequestException:
+        return ["I couldn't get that information at the moment, sorry."]
+
+
+def get_location_coordinates(city, country):
+    country_code = "," + countries.lookup(country).alpha_2 if country else ""
+    owm_req_url = (
+        f"http://api.openweathermap.org/geo/1.0/direct?q={city}{country_code}&appid={settings.OWM_API_KEY}"
+    )
+    if not city:
+        return None, None
+    try:
+        owm_resp = requests.get(owm_req_url).json()
+        print(owm_resp, country_code)
+        if len(owm_resp) > 0:
+            return owm_resp[0]["lat"], owm_resp[0]["lon"]
+        return None, None
+    except requests.exceptions.RequestException:
+        return None, None

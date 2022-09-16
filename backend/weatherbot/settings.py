@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 from pathlib import Path
 import os
 from transformers import pipeline
-from geopy.geocoders import Nominatim
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -136,10 +135,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CLASSIFIER = pipeline("zero-shot-classification", model="./pre-trained")
 
-GEO_LOCATOR = Nominatim(user_agent="weather-bot")
-
 DEFAULT_LOCATION_NAME = "Melbourne"
 DEFAULT_LATITUDE = -37.8136
 DEFAULT_LONGITUDE = 144.9631
 
 OWM_API_KEY = os.environ.get("OWM_API_KEY")
+
+VC_API_KEY = os.environ.get("VC_API_KEY")
