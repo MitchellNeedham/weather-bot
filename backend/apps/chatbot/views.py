@@ -42,7 +42,7 @@ class MessageHandlerAPIView(APIView):
     def post(self, request: Request):
         try:
             conversation = Conversation.objects.get(id=request.data.get("conversation_id"))
-            message = request.data.get("message", "")
+            message = request.data.get("message", "").title()
 
             action = None
 
